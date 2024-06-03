@@ -18,12 +18,12 @@
         },
         "intel-intrinsics": "~>1.11.15",
         "plist-d": {
-            "repository": "git+https://github.com/Dadoum/libplist-d.git",
-            "version": "5020d8e45ca2c77183a44ce04053ccbf8bc83262"
+            "repository": "git+https://github.com/bitxeno/libplist-d.git",
+            "version": "99f8cd09f984f39982f8a7f33d53d2e2bfd3de7d"
         },
         "provision": {
-            "repository": "git+https://github.com/Dadoum/Provision.git",
-            "version": "533dca306b86f9c7801354b78f5187addb58b740"
+            "repository": "git+https://github.com/bitxeno/Provision.git",
+            "version": "cd4ff4b1428c3a3706ffed84b0732f1544fe864b"
         },
         "requests": "~>2.1",
         "slf4d": "~>2"
