@@ -199,6 +199,7 @@ import install;
 import sign;
 // @(Command("swift-setup").Description("Set-up certificates to build a Swift Package Manager iOS application (requires SPM in the path)."))
 import team;
+import device;
 import tool;
 // @(Command("tweak").Description("Install a tweak in an ipa file."))
 
@@ -237,6 +238,7 @@ int entryPoint(Commands commands)
                 (InstallCommand cmd) => cmd(),
                 (SignCommand cmd) => cmd(),
                 (TeamCommand cmd) => cmd(),
+                (DeviceCommand cmd) => cmd(),
                 (ToolCommand cmd) => cmd(),
                 (VersionCommand cmd) => cmd(),
         );
@@ -258,7 +260,7 @@ struct Commands
     uint threadCount = uint.max;
 
     @SubCommands
-    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TeamCommand, ToolCommand, VersionCommand) cmd;
+    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TeamCommand, DeviceCommand, ToolCommand, VersionCommand) cmd;
 }
 
 mixin CLI!Commands.main!entryPoint;

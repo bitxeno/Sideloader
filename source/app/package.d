@@ -68,6 +68,7 @@ bool downloadAndInstallDeps(string configurationPath, bool delegate(float progre
 
 ProvisioningData initializeADI(string configurationPath) {
     auto log = getLogger();
+    log.info(configurationPath.buildPath("device.json"));
     auto device = new Device(configurationPath.buildPath("device.json"));
 
     if (!device.initialized) {
