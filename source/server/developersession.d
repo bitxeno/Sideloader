@@ -399,8 +399,17 @@ class DeveloperSession {
             "appIdId", appId.appIdId,
             "teamId", team.teamId,
         );
+        switch(deviceType) {
+            case DeveloperDeviceType.iOS:
+                request.merge(dict("DTDK_Platform", "ios"));
+                break;
+            case DeveloperDeviceType.tvOS:
+                request.merge(dict("DTDK_Platform", "tvos", "subPlatform", "tvOS"));
+                break;
+            default: break;
+        }
 
-        return sendRequest(developerPortal!("downloadTeamProvisioningProfile.action", deviceType), request).match!(
+        return sendRequest(developerPortal!("downloadTeamProvisioningProfile.action", DeveloperDeviceType.iOS), request).match!(
                 (PlistDict dict) {
                     auto provisioningProfile = dict["provisioningProfile"].dict();
                     return DeveloperPortalResponse(

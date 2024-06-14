@@ -122,6 +122,14 @@ public class LockdowndClient {
         return cast(string) name.fromStringz;
     }
 
+    public @property string deviceClass() {
+        auto plist = opIndex(null, "DeviceClass");
+        if (PlistString val = cast(PlistString) plist) {
+            return val.opCast!string();
+        }
+        return "";
+    }
+
     public LockdowndServiceDescriptor startService(string identifier) {
         lockdownd_service_descriptor_t descriptor;
         lockdownd_start_service(handle, identifier.toStringz, &descriptor).assertSuccess();

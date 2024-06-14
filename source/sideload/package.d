@@ -43,14 +43,14 @@ void sideloadFull(
 
     // list development devices from the account
     progressCallback(1 / STEP_COUNT, "List account's development devices");
+    scope lockdownClient = new LockdowndClient(device, "sideloader");
     auto devices = developer.listDevices!iOS(team).unwrap();
     auto deviceUdid = device.udid();
 
     // if the current device is not registered as a development device for this account, do it!
     if (!devices.any!((device) => device.deviceNumber == deviceUdid)) {
         progressCallback(2 / STEP_COUNT, "Register the current device as a development device");
-        scope lockdown = new LockdowndClient(device, "sideloader.developer");
-        auto deviceName = lockdown.deviceName();
+        auto deviceName = lockdownClient.deviceName();
         developer.addDevice!iOS(team, deviceName, deviceUdid).unwrap();
     }
 
@@ -128,7 +128,12 @@ void sideloadFull(
     ProvisioningProfile[string] provisioningProfiles;
     foreach (appId; appIds) {
         developer.assignApplicationGroupToAppId!iOS(team, appId, appGroup).unwrap();
-        provisioningProfiles[appId.identifier] = developer.downloadTeamProvisioningProfile!iOS(team, mainAppId).unwrap();
+        auto deviceClass = lockdownClient.deviceClass();
+        if (deviceClass.canFind("AppleTV")) {
+            provisioningProfiles[appId.identifier] = developer.downloadTeamProvisioningProfile!tvOS(team, mainAppId).unwrap();
+        } else {
+            provisioningProfiles[appId.identifier] = developer.downloadTeamProvisioningProfile!iOS(team, mainAppId).unwrap();
+        }
     }
 
     // sign the app with all the retrieved material!
@@ -139,7 +144,6 @@ void sideloadFull(
     // connect to the device's installation daemon and send to it the signed app
     double progress = 8 / STEP_COUNT;
     progressCallback(progress, "Installing the application on the device");
-    scope lockdownClient = new LockdowndClient(device, "sideloader.app_install");
 
     // set up clients and proxies
     auto installationProxyService = lockdownClient.startService("com.apple.mobile.installation_proxy");
