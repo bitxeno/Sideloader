@@ -72,6 +72,13 @@ class CertificateIdentity {
                     // +/
                 }
             }
+
+            log.warn("Please use the same Sideloader you previously used with this Apple ID, or else apps installed with other Sideloaders will stop working.");
+            log.warn("Installing app with Multiple Sideloaders Not Supported!");
+            log.warn("Revoke previously generated certificates by Sideloader.");
+            foreach (cert; sideloaderCertificates) {
+                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
+            }
         } else {
             log.debug_("Generating a new RSA key");
             privateKey = RSAPrivateKey(rng, 2048);
