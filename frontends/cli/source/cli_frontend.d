@@ -99,7 +99,7 @@ string readPasswordLine(string prompt) {
     }
 }
 
-DeveloperSession login(Device device, ADI adi, bool interactive) {
+DeveloperSession login(Device device, ADI adi, bool interactive, string appleId, string password) {
     auto log = getLogger();
 
     log.info("Logging in...");
@@ -110,17 +110,18 @@ DeveloperSession login(Device device, ADI adi, bool interactive) {
     // ...
 
     if (account) return null;
-    if (!interactive) {
-        log.error("You are not logged in. (use `sidestore login` to log-in, or add `-i` to make us ask you the account)");
+    if (interactive) {
+        log.info("Please enter your account informations. They will only be sent to Apple servers.");
+        log.info("See it for yourself at https://github.com/Dadoum/Sideloader/");
+
+        write("Apple ID: ");
+        appleId = readln().chomp();
+        password = readPasswordLine("Password: ");
+    }
+    if (appleId.empty || password.empty) {
+        log.error("You are not logged in. (please add `-a` and `-p` to specific Apple ID, or add `-i` to make us ask you the account)");
         return null;
     }
-
-    log.info("Please enter your account informations. They will only be sent to Apple servers.");
-    log.info("See it for yourself at https://github.com/Dadoum/Sideloader/");
-
-    write("Apple ID: ");
-    string appleId = readln().chomp();
-    string password = readPasswordLine("Password: ");
 
     return DeveloperSession.login(
         device,
@@ -208,8 +209,12 @@ mixin template LoginCommand()
     import provision;
     @(NamedArgument("i", "interactive").Description("Prompt to type passwords if needed."))
     bool interactive = false;
+    @(NamedArgument("a", "appleId").Description("Apple ID to sign the ipa, only needed when installing IPA."))
+    string appleId = "";
+    @(NamedArgument("p", "password").Description("Password of Apple ID, only needed when installing IPA."))
+    string password = "";
 
-    final auto login(Device device, ADI adi) => cli_frontend.login(device, adi, interactive);
+    final auto login(Device device, ADI adi) => cli_frontend.login(device, adi, interactive, appleId, password);
 }
 
 @(Command("version").Description("Print the version."))
