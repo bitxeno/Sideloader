@@ -3,6 +3,7 @@ module constants;
 public import version_string;
 
 enum applicationName = "Sideloader";
+enum altstoreApplicationNmae = "AltStore";
 enum appWebsite = "https://github.com/Dadoum/Sideloader";
 enum rawAboutText = `%s
 

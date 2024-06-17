@@ -152,7 +152,18 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
 auto initializeADI(string configurationPath)
 {
     scope log = getLogger();
-    if (!(file.exists(configurationPath.buildPath("lib/libstoreservicescore.so")) && file.exists(configurationPath.buildPath("lib/libCoreADI.so")))) {
+    version (X86_64) {
+        enum string architectureIdentifier = "x86_64";
+    } else version (X86) {
+        enum string architectureIdentifier = "x86";
+    } else version (AArch64) {
+        enum string architectureIdentifier = "arm64-v8a";
+    } else version (ARM) {
+        enum string architectureIdentifier = "armeabi-v7a";
+    } else {
+        static assert(false, "Architecture not supported :(");
+    }
+    if (!(file.exists(configurationPath.buildPath("lib", architectureIdentifier, "libstoreservicescore.so")) && file.exists(configurationPath.buildPath("lib", architectureIdentifier, "libCoreADI.so")))) {
         auto succeeded = downloadAndInstallDeps(configurationPath, (progress) {
             write(format!"%.2f %% completed\r"(progress * 100));
             stdout.flush();

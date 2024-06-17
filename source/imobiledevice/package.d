@@ -6,6 +6,7 @@ public import imobiledevice.installation_proxy;
 public import imobiledevice.libimobiledevice;
 public import imobiledevice.lockdown;
 public import imobiledevice.misagent;
+public import imobiledevice.heartbeat;
 
 import core.memory;
 
@@ -14,6 +15,7 @@ import std.algorithm.iteration;
 import std.format;
 import std.string;
 import std.traits;
+import std.conv;
 
 import plist;
 import plist.c;
@@ -128,6 +130,31 @@ public class LockdowndClient {
             return val.opCast!string();
         }
         return "";
+    }
+
+    public @property string productType() {
+        auto plist = opIndex(null, "ProductType");
+        if (PlistString val = cast(PlistString) plist) {
+            return val.opCast!string();
+        }
+        return "";
+    }
+
+    public @property string productVersion() {
+        auto plist = opIndex(null, "ProductVersion");
+        if (PlistString val = cast(PlistString) plist) {
+            return val.opCast!string();
+        }
+        return "";
+    }
+
+    public @property int osVersion() {
+        auto productVers = productVersion();
+        if (productVers.empty) {
+            return 0;
+        }
+        auto parts = productVers.split(".");
+        return to!int(parts[0]);
     }
 
     public LockdowndServiceDescriptor startService(string identifier) {
@@ -297,6 +324,33 @@ public class MisagentClient {
     ~this() {
         if (handle) { // it may be null if an exception has been thrown TODO: switch from a constructor to a static function to fix that.
             misagent_client_free(handle).assertSuccess();
+        }
+    }
+}
+
+public class HeartbeatClient {
+    heartbeat_client_t handle;
+
+    public this(iDevice device, LockdowndServiceDescriptor service) {
+        heartbeat_client_new(device.handle, service, &handle).assertSuccess();
+    }
+
+    void sendPong() {
+        auto pong = dict(
+            "Command", "Polo",
+        );
+        heartbeat_send(handle, pong.handle).assertSuccess();
+    }
+
+    Plist receive() {
+        plist_t ret;
+        heartbeat_receive(handle, &ret).assertSuccess();
+        return Plist.wrap(ret);
+    }
+
+    ~this() {
+        if (handle) { // it may be null if an exception has been thrown TODO: switch from a constructor to a static function to fix that.
+            heartbeat_client_free(handle).assertSuccess();
         }
     }
 }

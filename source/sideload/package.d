@@ -146,6 +146,16 @@ void sideloadFull(
     progressCallback(progress, "Installing the application on the device");
 
     // set up clients and proxies
+    // tvOS 17 need to hearbeat lockdownd service
+    auto osVersion = lockdownClient.osVersion();
+    if (osVersion >= 17) {
+        auto heartbeatService = lockdownClient.startService("com.apple.mobile.heartbeat");
+        scope heartbeatClient = new HeartbeatClient(device, heartbeatService);
+        heartbeatClient.receive();
+        heartbeatClient.sendPong();
+        log.debug_("Heartbeat success for tvOS 17!");
+    }
+
     auto installationProxyService = lockdownClient.startService("com.apple.mobile.installation_proxy");
     scope installationProxyClient = new InstallationProxyClient(device, installationProxyService);
 

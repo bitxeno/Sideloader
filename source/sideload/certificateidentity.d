@@ -5,6 +5,8 @@ import std.digest.sha;
 import file = std.file;
 import std.path;
 import std.uni;
+import std.process;
+import std.regex;
 
 import slf4d;
 
@@ -22,6 +24,8 @@ import server.developersession;
 
 import sideload.bundle;
 
+import utils;
+
 class CertificateIdentity {
     RandomNumberGenerator rng = void;
     X509Certificate certificate = void;
@@ -38,7 +42,7 @@ class CertificateIdentity {
     this(string configurationPath, DeveloperSession appleAccount) {
         auto log = getLogger();
         scope(success) log.debug_("Certificate retrieved successfully.");
-
+        
         string keyPath = configurationPath.buildPath("keys").buildPath(sha1Of(appleAccount.appleId).toHexString().toLower());
         if (!file.exists(keyPath)) {
             file.mkdirRecurse(keyPath);
@@ -57,6 +61,7 @@ class CertificateIdentity {
 
             log.debug_("Checking if any certificate online is matching the private key...");
             auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
+
             auto sideloaderCertificates = certificates.find!((cert) => cert.machineName == applicationName);
             if (sideloaderCertificates.length != 0) {
                 Vector!ubyte certContent;
@@ -69,17 +74,73 @@ class CertificateIdentity {
                         certificate = X509Certificate(Vector!ubyte(certContent), false);
                         return;
                     }
-                    // +/
+                }
+
+                log.warn("Please use the same Sideloader you previously used with this Apple ID, or else apps installed with other Sideloaders will stop working.");
+                log.warn("Installing app with Multiple Sideloaders Not Supported!");
+                log.warn("Revoke previously generated certificates by Sideloader.");
+                foreach (cert; sideloaderCertificates) {
+                    appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
+                    log.warnF!"Revoke certificate: %s."(cert.machineName);
                 }
             }
-
-            log.warn("Please use the same Sideloader you previously used with this Apple ID, or else apps installed with other Sideloaders will stop working.");
-            log.warn("Installing app with Multiple Sideloaders Not Supported!");
-            log.warn("Revoke previously generated certificates by Sideloader.");
-            foreach (cert; sideloaderCertificates) {
-                appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
-            }
+        } 
+        
+        version (Windows) {
+            string altstoreDeaultConfigurationPath = environment["AppData"].buildPath("AltServer");
+        } else version (OSX) {
+            string altstoreDeaultConfigurationPath = "~/Library/Preferences/AltServer/".expandTilde();
         } else {
+            string altstoreDeaultConfigurationPath = "/data/AltServer/".expandTilde();
+        }
+        auto regPattern = regex(r"(?i)[^0-9a-zA-Z]+"); 
+        string accountPath = replaceAll(appleAccount.appleId, regPattern, "").toLower();
+        string altstoreConfigurationPath = environment.get("ALTSERVER_CONFIG_DIR").orDefault(altstoreDeaultConfigurationPath);
+        string altstoreP12Path = altstoreConfigurationPath.buildPath(accountPath).buildPath("AltServerData", "Certificates", team.teamId ~ ".p12");
+        string altstorePrivateKeyPath = altstoreConfigurationPath.buildPath(accountPath).buildPath("AltServerData", "Certificates", team.teamId ~ ".pem");
+
+        if (file.exists(altstoreP12Path)) {
+            // [AltServer compatible]
+            log.debug_("Checking if AltStore certificate online is matching the private key...");
+            auto certificates = appleAccount.listAllDevelopmentCerts!iOS(team).unwrap();
+
+            auto altstoreCertificates = certificates.find!((cert) => cert.machineName == altstoreApplicationNmae);
+            if (altstoreCertificates.length != 0) {
+                foreach (cert; altstoreCertificates) {
+                    string opensslCommand = "openssl pkcs12 -in " ~ altstoreP12Path ~ " -legacy -nodes -passin pass:" ~ cert.machineId;
+                    auto process = executeShell(opensslCommand);
+                    if (process.status == 0) {
+                        string output = process.output.idup;
+                        auto regPrivateKey = regex(r"-----BEGIN PRIVATE KEY-----[\w\W]*?-----END PRIVATE KEY-----");
+                        auto match = matchFirst(output, regPrivateKey);
+                        if (!match.empty) {
+                            file.write(altstorePrivateKeyPath, match.hit);
+                            auto altserverPrivateKey = RSAPrivateKey(loadKey(altstorePrivateKeyPath, rng));
+                            Vector!ubyte ourPublicKey = altserverPrivateKey.x509SubjectPublicKey();
+
+                            Vector!ubyte certContent = Vector!ubyte(cert.certContent);
+                            auto x509cert = X509Certificate(certContent, false);
+                            if (x509cert.subjectPublicKey().x509SubjectPublicKey() == ourPublicKey) {
+                                log.debug_("Matching AltStore certificate found.");
+                                privateKey = altserverPrivateKey;
+                                certificate = X509Certificate(Vector!ubyte(certContent), false);
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                log.warn("Please use the same Sideloader you previously used with this Apple ID, or else apps installed with other Sideloaders will stop working.");
+                log.warn("Installing app with Multiple Sideloaders Not Supported!");
+                log.warn("Revoke previously generated certificates by Sideloader.");
+                foreach (cert; altstoreCertificates) {
+                    appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
+                    log.warnF!"Revoke certificate: %s."(cert.machineName);
+                }
+            }
+        }
+        
+        if (privateKey is null) {
             log.debug_("Generating a new RSA key");
             privateKey = RSAPrivateKey(rng, 2048);
 

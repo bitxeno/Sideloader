@@ -207,18 +207,20 @@ class DeveloperSession {
         );
 
         return sendRequest(developerPortal!("listAllDevelopmentCerts.action", deviceType), request).match!(
-                (PlistDict dict) => DeveloperPortalResponse(dict["certificates"].array().native().map!(
-                        (Plist certPlist) => DevelopmentCertificate(
-                            certPlist["name"].str().native(),
-                            certPlist["certificateId"].str().native(),
-                            certPlist["serialNumber"].str().native(),
-                            certPlist["certContent"].data().native(),
-                            "machineName" in certPlist.dict() ? certPlist["machineName"].str().native() : "",
-                        )
+            (PlistDict dict) => DeveloperPortalResponse(dict["certificates"].array().native().map!(
+                    (Plist certPlist) => DevelopmentCertificate(
+                        certPlist["name"].str().native(),
+                        certPlist["certificateId"].str().native(),
+                        certPlist["serialNumber"].str().native(),
+                        certPlist["certContent"].data().native(),
+                        "machineName" in certPlist.dict() ? certPlist["machineName"].str().native() : "",
+                        "machineId" in certPlist.dict() ? certPlist["machineId"].str().native() : "",
+                    )
                 ).array()),
                 (DeveloperPortalError err) => DeveloperPortalResponse(err)
         );
     }
+
 
     DeveloperPortalResponse!None revokeDevelopmentCert(DeveloperDeviceType deviceType)(DeveloperTeam team, DevelopmentCertificate certificate) {
         alias DeveloperPortalResponse = typeof(return);
@@ -494,6 +496,7 @@ struct DevelopmentCertificate {
     string serialNumber;
     ubyte[] certContent;
     string machineName;
+    string machineId;
 }
 
 struct ListAppIdsResponse {
