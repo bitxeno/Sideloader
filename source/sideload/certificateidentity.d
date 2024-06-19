@@ -42,7 +42,7 @@ class CertificateIdentity {
     this(string configurationPath, DeveloperSession appleAccount) {
         auto log = getLogger();
         scope(success) log.debug_("Certificate retrieved successfully.");
-        
+
         string keyPath = configurationPath.buildPath("keys").buildPath(sha1Of(appleAccount.appleId).toHexString().toLower());
         if (!file.exists(keyPath)) {
             file.mkdirRecurse(keyPath);
@@ -70,7 +70,7 @@ class CertificateIdentity {
                     certContent = Vector!ubyte(cert.certContent);
                     auto x509cert = X509Certificate(certContent, false);
                     if (x509cert.subjectPublicKey().x509SubjectPublicKey() == ourPublicKey) {
-                        log.debug_("Matching certificate found.");
+                        log.info("Sideload certificate found.");
                         certificate = X509Certificate(Vector!ubyte(certContent), false);
                         return;
                     }
@@ -81,7 +81,7 @@ class CertificateIdentity {
                 log.warn("Revoke previously generated certificates by Sideloader.");
                 foreach (cert; sideloaderCertificates) {
                     appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
-                    log.warnF!"Revoke certificate: %s."(cert.machineName);
+                    log.warnF!"Revoke Sideloader certificate: %s."(cert.machineName);
                 }
             }
         } 
@@ -121,7 +121,7 @@ class CertificateIdentity {
                             Vector!ubyte certContent = Vector!ubyte(cert.certContent);
                             auto x509cert = X509Certificate(certContent, false);
                             if (x509cert.subjectPublicKey().x509SubjectPublicKey() == ourPublicKey) {
-                                log.debug_("Matching AltStore certificate found.");
+                                log.info("AltServer certificate found.");
                                 privateKey = altserverPrivateKey;
                                 certificate = X509Certificate(Vector!ubyte(certContent), false);
                                 return;
@@ -130,12 +130,10 @@ class CertificateIdentity {
                     }
                 }
 
-                log.warn("Please use the same Sideloader you previously used with this Apple ID, or else apps installed with other Sideloaders will stop working.");
-                log.warn("Installing app with Multiple Sideloaders Not Supported!");
-                log.warn("Revoke previously generated certificates by Sideloader.");
+                log.warn("Revoke previously generated certificates by AltServer.");
                 foreach (cert; altstoreCertificates) {
                     appleAccount.revokeDevelopmentCert!iOS(team, cert).unwrap();
-                    log.warnF!"Revoke certificate: %s."(cert.machineName);
+                    log.warnF!"Revoke AltServer certificate: %s."(cert.machineName);
                 }
             }
         }

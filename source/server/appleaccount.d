@@ -164,6 +164,7 @@ package class AppleAccount {
                     log.traceF!"Trusted device 2FA response: %s"(codeValidationPlist.toXml());
                     auto resultCode = codeValidationPlist["ec"].uinteger().native();
 
+                    log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 0) {
                         response = AppleSecondaryActionResponse(ReloginNeeded());
                     } else {
@@ -178,6 +179,7 @@ package class AppleAccount {
                     auto resultCode = result.code();
                     log.traceF!"SMS 2FA response: %s"(resultCode);
 
+                    log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 200) {
                         response = AppleSecondaryActionResponse(ReloginNeeded());
                     } else {
@@ -411,7 +413,7 @@ package class AppleAccount {
                 string identityToken = Base64.encode(cast(ubyte[]) (adsid ~ ":" ~ idmsToken));
                 return nextStepHandler(identityToken, urls, secondaryActionKey, canIgnore).match!(
                     (AppleLoginError error) => AppleLoginResponse(error),
-                    (ReloginNeeded _) => completeAuthentication(),
+                    (ReloginNeeded _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
                     (Success _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
                 );
             case 433: /+ anisetteReprovisionRequired +/

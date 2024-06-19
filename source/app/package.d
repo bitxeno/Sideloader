@@ -44,6 +44,11 @@ bool downloadAndInstallDeps(string configurationPath, bool delegate(float progre
     auto apk = new ZipArchive(apkData);
     auto dir = apk.directory();
 
+    string libPath = configurationPath.buildPath("lib");
+    if (!file.exists(libPath)) {
+        file.mkdirRecurse(libPath);
+    }
+
     version (X86_64) {
         enum string architectureIdentifier = "x86_64";
     } else version (X86) {
@@ -55,12 +60,6 @@ bool downloadAndInstallDeps(string configurationPath, bool delegate(float progre
     } else {
         static assert(false, "Architecture not supported :(");
     }
-
-    string libPath = configurationPath.buildPath("lib", architectureIdentifier);
-    if (!file.exists(libPath)) {
-        file.mkdirRecurse(libPath);
-    }
-
     file.write(libPath.buildPath("libCoreADI.so"), apk.expand(dir["lib/" ~ architectureIdentifier ~ "/libCoreADI.so"]));
     file.write(libPath.buildPath("libstoreservicescore.so"), apk.expand(dir["lib/" ~ architectureIdentifier ~ "/libstoreservicescore.so"]));
     log.info("Extracted successfully!");
@@ -69,7 +68,6 @@ bool downloadAndInstallDeps(string configurationPath, bool delegate(float progre
 
 ProvisioningData initializeADI(string configurationPath) {
     auto log = getLogger();
-    log.info(configurationPath.buildPath("device.json"));
     auto device = new Device(configurationPath.buildPath("device.json"));
 
     if (!device.initialized) {

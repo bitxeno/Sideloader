@@ -99,7 +99,7 @@ string readPasswordLine(string prompt) {
     }
 }
 
-DeveloperSession login(Device device, ADI adi, bool interactive, string appleId, string password) {
+DeveloperSession login(Device device, ADI adi, bool interactive, string appleId, string password, bool quietMode) {
     auto log = getLogger();
 
     log.info("Logging in...");
@@ -123,23 +123,31 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
         return null;
     }
 
+    TFAHandlerDelegate tfaHandler = (sendCode, submitCode) {
+        if (quietMode) {
+            string error = format!`Unsupported 2FA authentication in QUIET MODE.`;
+            log.error(error);
+            throw new Exception(error);
+        }
+    
+        sendCode();
+        string code;
+        do {
+            write("A code has been sent to your devices, please type it here (type `resend` to resend one): ");
+            code = readln().chomp();
+            if (code == "resend") {
+                sendCode();
+                continue;
+            }
+        } while (submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => true));
+    };
+
     return DeveloperSession.login(
         device,
         adi,
         appleId,
         password,
-        (sendCode, submitCode) {
-            sendCode();
-            string code;
-            do {
-                write("A code has been sent to your devices, please type it here (type `resend` to resend one): ");
-                code = readln().chomp();
-                if (code == "resend") {
-                    sendCode();
-                    continue;
-                }
-            } while (submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => true));
-        })
+        tfaHandler)
     .match!(
         (DeveloperSession session) => session,
         (AppleLoginError error) {
@@ -152,18 +160,7 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
 auto initializeADI(string configurationPath)
 {
     scope log = getLogger();
-    version (X86_64) {
-        enum string architectureIdentifier = "x86_64";
-    } else version (X86) {
-        enum string architectureIdentifier = "x86";
-    } else version (AArch64) {
-        enum string architectureIdentifier = "arm64-v8a";
-    } else version (ARM) {
-        enum string architectureIdentifier = "armeabi-v7a";
-    } else {
-        static assert(false, "Architecture not supported :(");
-    }
-    if (!(file.exists(configurationPath.buildPath("lib", architectureIdentifier, "libstoreservicescore.so")) && file.exists(configurationPath.buildPath("lib", architectureIdentifier, "libCoreADI.so")))) {
+    if (!(file.exists(configurationPath.buildPath("lib/libstoreservicescore.so")) && file.exists(configurationPath.buildPath("lib/libCoreADI.so")))) {
         auto succeeded = downloadAndInstallDeps(configurationPath, (progress) {
             write(format!"%.2f %% completed\r"(progress * 100));
             stdout.flush();
@@ -212,6 +209,7 @@ import sign;
 // @(Command("swift-setup").Description("Set-up certificates to build a Swift Package Manager iOS application (requires SPM in the path)."))
 import team;
 import device;
+import check;
 import tool;
 // @(Command("tweak").Description("Install a tweak in an ipa file."))
 
@@ -225,7 +223,7 @@ mixin template LoginCommand()
     @(NamedArgument("p", "password").Description("Password of Apple ID, only needed when installing IPA."))
     string password = "";
 
-    final auto login(Device device, ADI adi) => cli_frontend.login(device, adi, interactive, appleId, password);
+    final auto login(Device device, ADI adi, bool quietMode = false) => cli_frontend.login(device, adi, interactive, appleId, password, quietMode);
 }
 
 @(Command("version").Description("Print the version."))
@@ -244,7 +242,14 @@ int entryPoint(Commands commands)
     }
 
     defaultPoolThreads = commands.threadCount;
-    configureLoggingProvider(new shared DefaultProvider(true, commands.debug_ ? Levels.DEBUG : Levels.INFO));
+    auto logLevel = Levels.INFO;
+    if (commands.debug_) {
+        logLevel = Levels.DEBUG;
+    }
+    if (commands.trace_) {
+        logLevel = Levels.TRACE;
+    }
+    configureLoggingProvider(new shared DefaultProvider(true, logLevel));
 
     try
     {
@@ -255,6 +260,7 @@ int entryPoint(Commands commands)
                 (SignCommand cmd) => cmd(),
                 (TeamCommand cmd) => cmd(),
                 (DeviceCommand cmd) => cmd(),
+                (CheckCommand cmd) => cmd(),
                 (ToolCommand cmd) => cmd(),
                 (VersionCommand cmd) => cmd(),
         );
@@ -272,11 +278,14 @@ struct Commands
     @(NamedArgument("d", "debug").Description("Enable debug logging"))
     bool debug_;
 
+    @(NamedArgument("verbose").Description("Enable trace logging"))
+    bool trace_;
+
     @(NamedArgument("thread-count").Description("Numbers of threads to be used for signing the application bundle"))
     uint threadCount = uint.max;
 
     @SubCommands
-    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TeamCommand, DeviceCommand, ToolCommand, VersionCommand) cmd;
+    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TeamCommand, DeviceCommand, CheckCommand, ToolCommand, VersionCommand) cmd;
 }
 
 mixin CLI!Commands.main!entryPoint;
