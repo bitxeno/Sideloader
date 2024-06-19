@@ -1,6 +1,9 @@
 name: CLI builds
 
-on: workflow_dispatch
+on: 
+  push:
+    tags: ["**"]
+  workflow_dispatch:
 
 env:
   BUILD_TYPE: Release
