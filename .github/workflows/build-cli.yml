@@ -64,7 +64,7 @@ jobs:
             ${{github.workspace}}/bin/*
 
       - name: Compress build files
-        run: cd ${{github.workspace}}/bin/ && for i in *; do tar -czf $i.tar.gz $i; done && cd ..
+        run: cd ${{github.workspace}}/bin/ && rm -rf *.dbg && for i in *; do tar -czf $i.tar.gz $i; done && cd ..
         
       - name: Upload binary to GitHub Release
         uses: softprops/action-gh-release@v1
