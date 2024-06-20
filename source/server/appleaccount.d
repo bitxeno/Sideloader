@@ -169,7 +169,7 @@ package class AppleAccount {
 
                     log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 0) {
-                        response = AppleSecondaryActionResponse(Success());
+                        response = AppleSecondaryActionResponse(ReloginNeeded());
                     } else {
                         response = AppleSecondaryActionResponse(AppleLoginError(cast(AppleLoginErrorCode) resultCode, codeValidationPlist["em"].str().native()));
                     }
@@ -417,8 +417,8 @@ package class AppleAccount {
                 string identityToken = Base64.encode(cast(ubyte[]) (adsid ~ ":" ~ idmsToken));
                 return nextStepHandler(identityToken, urls, secondaryActionKey, canIgnore).match!(
                     (AppleLoginError error) => AppleLoginResponse(error),
-                    (ReloginNeeded _) => completeAuthentication(),
-                    (Success _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
+                    (ReloginNeeded _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
+                    (Success _) => completeAuthentication(),
                 );
             case 433: /+ anisetteReprovisionRequired +/
                 log.errorF!"Server requested Anisette reprovision that has not been implemented yet! Here is some debug info: %s"(response2Str);
