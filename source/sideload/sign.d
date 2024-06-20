@@ -198,13 +198,10 @@ Tuple!(PlistDict, PlistDict) sign(
     auto log = getLogger();
 
     auto bundleFolder = bundle.bundleDir;
-    // remove all SC_Info folders
-    foreach (entry; file.dirEntries(bundleFolder, file.SpanMode.depth))
-    {
-        if (entry.isDir && baseName(entry) == "SC_Info")
-        {
-            file.rmdirRecurse(entry);
-        }
+    enum fairPlayDir = "SC_Info";
+    auto fairPlayFolder = bundleFolder.buildPath(fairPlayDir);
+    if (file.exists(fairPlayFolder)) {
+        file.rmdirRecurse(fairPlayFolder);
     }
 
     auto bundleId =  bundle.bundleIdentifier();
@@ -246,7 +243,7 @@ Tuple!(PlistDict, PlistDict) sign(
     const double stepSize = 1.0 / stepCount;
 
     void signSubBundles() {
-        foreach (subBundle; parallel(subBundles)) {
+        foreach (subBundle; maybeParallel(subBundles, isMultithreaded)) {
             auto bundleFiles = subBundle.sign(
                 identity,
                 provisioningProfiles,
@@ -290,7 +287,7 @@ Tuple!(PlistDict, PlistDict) sign(
                 scope MmFile memoryFile = new MmFile(subBundle.bundleDir.buildPath(subRelativePath));
                 ubyte[] fileData = cast(ubyte[]) memoryFile[];
 
-                foreach (hashCouple; parallel(hashPairs)) {
+                foreach (hashCouple; maybeParallel(hashPairs, isMultithreaded)) {
                     auto localHasher = hashCouple[0];
                     auto sha = hashCouple[1];
                     sha[] = localHasher.process(fileData)[];
@@ -339,7 +336,7 @@ Tuple!(PlistDict, PlistDict) sign(
 
     // TODO re-use the original CodeResources if it already existed.
     if (bundleFolder[$ - 1] == '/' || bundleFolder[$ - 1] == '\\') bundleFolder.length -= 1;
-    foreach(idx, absolutePath; parallel(bundleFiles)) {
+    foreach(idx, absolutePath; maybeParallel(bundleFiles, isMultithreaded)) {
         // scope(exit) addProgress(fileStepSize);
 
         string basename = baseName(absolutePath);
@@ -357,6 +354,8 @@ Tuple!(PlistDict, PlistDict) sign(
             || (relativePath.startsWith(frameworksDir) && relativePath[frameworksDir.length..$].toForwardSlashes().canFind('/'))
             // if it's a file from a plugins folder, skip it as it is processed by some other thread.
             || (relativePath.startsWith(plugInsDir) && relativePath[plugInsDir.length..$].toForwardSlashes().canFind('/'))
+            // if it's a fairplay file, it should not exist anymore anyway.
+            || (relativePath.startsWith(fairPlayDir))
         ) {
             continue;
         }
@@ -373,13 +372,13 @@ Tuple!(PlistDict, PlistDict) sign(
             scope MmFile memoryFile = new MmFile(absolutePath);
             ubyte[] fileData = cast(ubyte[]) memoryFile[];
 
-            foreach (hashCouple; parallel(hashPairs)) {
+            foreach (hashCouple; maybeParallel(hashPairs, isMultithreaded)) {
                 auto localHasher = hashCouple[0];
                 auto sha = hashCouple[1];
                 sha[] = localHasher.process(fileData)[];
             }
         } else {
-            foreach (hashCouple; parallel(hashPairs)) {
+            foreach (hashCouple; maybeParallel(hashPairs, isMultithreaded)) {
                 auto localHasher = hashCouple[0];
                 auto sha = hashCouple[1];
                 sha[] = localHasher.process(cast(ubyte[]) [])[];
@@ -434,7 +433,7 @@ Tuple!(PlistDict, PlistDict) sign(
 
     double machOStepSize = stepSize / fatMachOs.length;
 
-    foreach (idx, fatMachOPair; parallel(fatMachOs)) {
+    foreach (idx, fatMachOPair; maybeParallel(fatMachOs, isMultithreaded)) {
         scope(exit) addProgress(machOStepSize);
         auto path = fatMachOPair.path;
         auto fatMachO = fatMachOPair.machO;
