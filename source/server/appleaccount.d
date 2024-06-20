@@ -140,11 +140,13 @@ package class AppleAccount {
             // sends code to the trusted devices
             bool delegate() sendCode;
             if (urlBagKey == "trustedDeviceSecondaryAuth") {
+                // need device 2FA
                 sendCode = () {
                     auto res = request.get(urls["trustedDeviceSecondaryAuth"]);
                     return res.code == 200;
                 };
             } else {
+                // need SMS 2FA
                 sendCode = () {
                     // urls["trustedDeviceSecondaryAuth"] to select the right phone number.
                     auto res = request.get(urls["secondaryAuth"]);
@@ -158,6 +160,7 @@ package class AppleAccount {
             AppleSecondaryActionResponse response = AppleSecondaryActionResponse(AppleLoginError(AppleLoginErrorCode.no2FAAttempt, "2FA has not been completed."));
             AppleSecondaryActionResponse delegate(string) submitCode;
             if (urlBagKey == "trustedDeviceSecondaryAuth") {
+                // need device 2FA
                 submitCode = (string code) {
                     request.headers["security-code"] = code;
                     auto codeValidationPlist = Plist.fromXml(request.get(urls["validateCode"]).responseBody().data!string()).dict();
@@ -166,7 +169,7 @@ package class AppleAccount {
 
                     log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 0) {
-                        response = AppleSecondaryActionResponse(ReloginNeeded());
+                        response = AppleSecondaryActionResponse(Success());
                     } else {
                         response = AppleSecondaryActionResponse(AppleLoginError(cast(AppleLoginErrorCode) resultCode, codeValidationPlist["em"].str().native()));
                     }
@@ -174,6 +177,7 @@ package class AppleAccount {
                     return response;
                 };
             } else if (urlBagKey == "secondaryAuth") {
+                // need SMS 2FA
                 submitCode = (string code) {
                     auto result = request.post("https://gsa.apple.com/auth/verify/phone/securitycode", [ "securityCode": code ]);
                     auto resultCode = result.code();
@@ -413,7 +417,7 @@ package class AppleAccount {
                 string identityToken = Base64.encode(cast(ubyte[]) (adsid ~ ":" ~ idmsToken));
                 return nextStepHandler(identityToken, urls, secondaryActionKey, canIgnore).match!(
                     (AppleLoginError error) => AppleLoginResponse(error),
-                    (ReloginNeeded _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
+                    (ReloginNeeded _) => completeAuthentication(),
                     (Success _) => login(applicationInformation, device, adi, appleId, password, nextStepHandler),
                 );
             case 433: /+ anisetteReprovisionRequired +/
