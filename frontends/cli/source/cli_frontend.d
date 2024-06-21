@@ -125,7 +125,7 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
 
     TFAHandlerDelegate tfaHandler = (sendCode, submitCode) {
         if (quietMode) {
-            string error = format!`Unsupported 2FA authentication in QUIET MODE.`;
+            string error = format!`2FA authentication can not performed in QUIET MODE.`;
             log.error(error);
             throw new Exception(error);
         }
@@ -139,7 +139,7 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
                 sendCode();
                 continue;
             }
-        } while (submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => true));
+        } while (submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => false));
     };
 
     return DeveloperSession.login(

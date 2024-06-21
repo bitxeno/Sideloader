@@ -10,6 +10,8 @@ import std.sumtype;
 import std.typecons;
 import std.uni;
 import std.zlib;
+import std.algorithm.searching;
+import std.stdio;
 
 import botan.block.aes;
 import botan.block.aes_ni;
@@ -151,7 +153,7 @@ package class AppleAccount {
                     // urls["trustedDeviceSecondaryAuth"] to select the right phone number.
                     auto res = request.get(urls["secondaryAuth"]);
                     // auto res = request.put("https://gsa.apple.com/auth/verify/phone/", `{"phoneNumber": {"id": 1}, "mode": "sms"}`);
-                    log.infoF!"Code sent: %s"(res.responseBody().data!string());
+                    log.traceF!"Code sent: %s"(res.responseBody().data!string());
                     return res.code == 200;
                 };
             }
@@ -179,9 +181,13 @@ package class AppleAccount {
             } else if (urlBagKey == "secondaryAuth") {
                 // need SMS 2FA
                 submitCode = (string code) {
-                    auto result = request.post("https://gsa.apple.com/auth/verify/phone/securitycode", [ "securityCode": code ]);
+                    auto json = `{ "securityCode" : { "code" : "` ~ code ~ `" }, "phoneNumber" : {"id": 1}, "mode": "sms" }`;
+                    request.addHeaders([
+                        "Content-Type": "application/json",
+                    ]);
+                    auto result = request.post("https://gsa.apple.com/auth/verify/phone/securitycode", json);
                     auto resultCode = result.code();
-                    log.traceF!"SMS 2FA response: %s"(resultCode);
+                    log.traceF!"SMS 2FA response: %s"(result.responseBody().data!string());
 
                     log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 200) {
