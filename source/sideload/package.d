@@ -245,6 +245,7 @@ void sideloadFull(
     );
 
     progressCallback(1.0, "Done!");
+    log.info("Installation Succeeded!");
 }
 
 class NoAppIdRemainingException: Exception {

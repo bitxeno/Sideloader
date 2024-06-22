@@ -249,7 +249,7 @@ int entryPoint(Commands commands)
     if (commands.trace_) {
         logLevel = Levels.TRACE;
     }
-    configureLoggingProvider(new shared DefaultProvider(true, logLevel));
+    configureLoggingProvider(new shared DefaultProvider(!commands.nocolor_, logLevel));
 
     try
     {
@@ -280,6 +280,9 @@ struct Commands
 
     @(NamedArgument("verbose").Description("Enable trace logging"))
     bool trace_;
+
+    @(NamedArgument("nocolor").Description("Disable ANSI color output"))
+    bool nocolor_;
 
     @(NamedArgument("thread-count").Description("Numbers of threads to be used for signing the application bundle"))
     uint threadCount = uint.max;
