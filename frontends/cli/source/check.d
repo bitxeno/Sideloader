@@ -1,25 +1,36 @@
 module check;
 
+import std.sumtype;
+
 import slf4d;
 import slf4d.default_provider;
 
 import botan.pubkey.algo.rsa;
 
 import argparse;
-import progress;
-
-import server.developersession;
 
 import imobiledevice;
 
-import sideload.application;
-import sideload.certificateidentity;
-import sideload.sign: sideloadSign = signFull;
-
 import cli_frontend;
 
-@(Command("check").Description("Check current environments."))
+@(Command("check").Description("Check configuration."))
 struct CheckCommand
+{
+    int opCall()
+    {
+        return cmd.match!(
+                (CheckConfig cmd) => cmd(),
+                (CheckLockdown cmd) => cmd()
+        );
+    }
+
+    @SubCommands
+    SumType!(CheckConfig, CheckLockdown) cmd;
+}
+
+
+@(Command("config").Description("Check current configuration environments."))
+struct CheckConfig
 {
     int opCall()
     {
@@ -39,6 +50,44 @@ struct CheckCommand
         log.infoF!" identifier=%s"(device.adiIdentifier);
         log.infoF!" localUserUUID=%s"(device.localUserUUID);
   
+        return 0;
+    }
+}
+
+@(Command("lockdown").Description("Check lockdown connection state."))
+struct CheckLockdown
+{
+    @(NamedArgument("udid").Description("UDID of the device (if multiple are available)."))
+    string udid = null;
+
+    int opCall()
+    {
+        auto log = getLogger();
+
+        auto devices = iDevice.deviceList();
+        string udid = this.udid;
+        if (!udid) {
+            if (devices.length == 1) {
+                udid = devices[0].udid;
+            } else {
+                if (!devices.length) {
+                    log.error("No device connected.");
+                    return 1;
+                }
+                if (!this.udid) {
+                    log.error("Multiple devices are connected. Please select one with --udid.");
+                }
+            }
+        }
+
+        auto device = new iDevice(udid);
+
+
+        scope lockdownClient = new LockdowndClient(device, "sideloader");
+        lockdownClient.startService(AFC_SERVICE_NAME);
+        log.info("SUCCESS!");
+
+
         return 0;
     }
 }
