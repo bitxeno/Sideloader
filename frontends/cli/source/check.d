@@ -81,12 +81,11 @@ struct CheckAfc
         }
 
         auto device = new iDevice(udid);
-
+        device.udid();
 
         scope lockdownClient = new LockdowndClient(device, "sideloader");
         lockdownClient.startService(AFC_SERVICE_NAME);
         log.info("SUCCESS!");
-
 
         return 0;
     }
