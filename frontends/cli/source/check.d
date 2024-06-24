@@ -20,12 +20,12 @@ struct CheckCommand
     {
         return cmd.match!(
                 (CheckConfig cmd) => cmd(),
-                (CheckLockdown cmd) => cmd()
+                (CheckAfc cmd) => cmd()
         );
     }
 
     @SubCommands
-    SumType!(CheckConfig, CheckLockdown) cmd;
+    SumType!(CheckConfig, CheckAfc) cmd;
 }
 
 
@@ -54,8 +54,8 @@ struct CheckConfig
     }
 }
 
-@(Command("lockdown").Description("Check lockdown connection state."))
-struct CheckLockdown
+@(Command("afc").Description("Check afc service state."))
+struct CheckAfc
 {
     @(NamedArgument("udid").Description("UDID of the device (if multiple are available)."))
     string udid = null;
