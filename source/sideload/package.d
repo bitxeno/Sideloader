@@ -205,6 +205,8 @@ void sideloadFull(
         progress += transferStep;
         progressCallback(progress, "Installing the application on the device (Transfer)");
     }
+    // clean temp signed bundle files
+    file.rmdirRecurse(app.bundleDir);
 
     // This is negligible in terms of time
     foreach (profile; provisioningProfiles.values()) {
