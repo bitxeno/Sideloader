@@ -162,8 +162,8 @@ auto initializeADI(string configurationPath)
     scope log = getLogger();
     if (!(file.exists(configurationPath.buildPath("lib/libstoreservicescore.so")) && file.exists(configurationPath.buildPath("lib/libCoreADI.so")))) {
         auto succeeded = downloadAndInstallDeps(configurationPath, (progress) {
-            write(format!"%.2f %% completed\r"(progress * 100));
-            stdout.flush();
+            // write(format!"%.2f %% completed\r"(progress * 100));
+            // stdout.flush();
 
             return false;
         });
