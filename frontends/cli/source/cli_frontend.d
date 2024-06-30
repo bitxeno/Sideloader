@@ -14,6 +14,7 @@ import std.sumtype;
 import std.string;
 import std.traits;
 import std.typecons;
+import std.regex;
 import file = std.file;
 
 import slf4d;
@@ -126,20 +127,20 @@ DeveloperSession login(Device device, ADI adi, bool interactive, string appleId,
     TFAHandlerDelegate tfaHandler = (sendCode, submitCode) {
         if (quietMode) {
             string error = format!`2FA authentication can not performed in QUIET MODE.`;
-            log.error(error);
             throw new Exception(error);
         }
     
         sendCode();
-        string code;
-        do {
-            write("A code has been sent to your devices, please type it here (type `resend` to resend one): ");
-            code = readln().chomp();
-            if (code == "resend") {
-                sendCode();
-                continue;
-            }
-        } while (submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => false));
+        log.info("A code has been sent to your devices, please type it here (type `ENTER` to cancel):");
+        auto code = readln().chomp();
+        if (code.empty) {
+            throw new Exception("Cancel 2FA authentication.");
+        }
+        auto regDigit = regex(r"^\d+$"); 
+        if (match(code, regDigit).empty) {
+            throw new Exception("Invalid 2FA code.");
+        }
+        submitCode(code).match!((Success _) => false, (ReloginNeeded _) => false, (AppleLoginError _) => false);
     };
 
     return DeveloperSession.login(

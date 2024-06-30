@@ -169,7 +169,6 @@ package class AppleAccount {
                     log.traceF!"Trusted device 2FA response: %s"(codeValidationPlist.toXml());
                     auto resultCode = codeValidationPlist["ec"].uinteger().native();
 
-                    log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 0) {
                         response = AppleSecondaryActionResponse(ReloginNeeded());
                     } else {
@@ -189,7 +188,6 @@ package class AppleAccount {
                     auto resultCode = result.code();
                     log.traceF!"SMS 2FA response: %s"(result.responseBody().data!string());
 
-                    log.infoF!"2FA response resultCode=%d"(resultCode);
                     if (resultCode == 200) {
                         response = AppleSecondaryActionResponse(ReloginNeeded());
                     } else {
