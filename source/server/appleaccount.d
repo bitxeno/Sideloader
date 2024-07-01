@@ -12,6 +12,7 @@ import std.uni;
 import std.zlib;
 import std.algorithm.searching;
 import std.stdio;
+import std.regex;
 
 import botan.block.aes;
 import botan.block.aes_ni;
@@ -180,16 +181,22 @@ package class AppleAccount {
             } else if (urlBagKey == "secondaryAuth") {
                 // need SMS 2FA
                 submitCode = (string code) {
-                    auto json = `{ "securityCode" : { "code" : "` ~ code ~ `" }, "phoneNumber" : {"id": 1}, "mode": "sms" }`;
-                    request.addHeaders([
-                        "Content-Type": "application/json",
-                    ]);
-                    auto result = request.post("https://gsa.apple.com/auth/verify/phone/securitycode", json);
+                    auto result = request.post("https://gsa.apple.com/auth/verify/phone/securitycode",
+                        format!`{"securityCode": {"code": "%s"}, "phoneNumber": {"id": 1}, "mode": "sms"}`(code),
+                        "application/json"
+                    );
                     auto resultCode = result.code();
-                    log.traceF!"SMS 2FA response: %s"(result.responseBody().data!string());
-
                     if (resultCode == 200) {
-                        response = AppleSecondaryActionResponse(ReloginNeeded());
+                        auto content = result.responseBody().data!string();
+                        auto regErrorMsg = regex("\"serviceErrors\":\\[\\{\"code\":\"([-\\d]+?)\",\"title\":\"(.+?)\"");
+                        auto capture = matchFirst(content, regErrorMsg);
+                        if (!capture.empty) {
+                            int errCode = to!int(capture[1]);
+                            auto errMsg = capture[2];
+                            response = AppleSecondaryActionResponse(AppleLoginError(cast(AppleLoginErrorCode) errCode, errMsg));
+                        } else {
+                            response = AppleSecondaryActionResponse(ReloginNeeded());
+                        }
                     } else {
                         response = AppleSecondaryActionResponse(AppleLoginError(cast(AppleLoginErrorCode) resultCode, result.responseBody().data!string()));
                     }
@@ -205,8 +212,6 @@ package class AppleAccount {
 
     package static AppleLoginResponse login(ApplicationInformation applicationInformation, Device device, ADI adi, string appleId, string password, NextLoginStepHandler nextStepHandler) {
         auto log = getLogger();
-
-        log.info("Logging in...");
 
         appleId = appleId.toLower();
 
