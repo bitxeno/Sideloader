@@ -12,9 +12,9 @@ class UsbmuxdException: Exception {
     }
 }
 
-void assertSuccess(int err) {
+void assertSuccess(int err, string file = __FILE__, int line = __LINE__) {
     if (err < 0)
-        throw new UsbmuxdException(err);
+        throw new UsbmuxdException(err, file, line);
 }
 
 ubyte[] readPairRecord(string udid) {

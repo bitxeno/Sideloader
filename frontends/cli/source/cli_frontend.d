@@ -271,7 +271,7 @@ int entryPoint(Commands commands)
     catch (Exception ex)
     {
         getLogger().errorF!"%s at %s:%d: %s"(typeid(ex).name, ex.file, ex.line, ex.msg);
-        getLogger().debugF!"Full exception: %s"(ex);
+        getLogger().errorF!"Full exception: %s"(ex);
         return 1;
     }
 }

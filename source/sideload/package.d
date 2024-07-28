@@ -205,6 +205,7 @@ void sideloadFull(
         progress += transferStep;
         progressCallback(progress, "Installing the application on the device (Transfer)");
     }
+    progressCallback(progress, "Installing the application on the device (Transfer Complete!)");
     // clean temp signed bundle files
     file.rmdirRecurse(app.bundleDir);
 

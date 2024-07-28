@@ -29,9 +29,9 @@ class iMobileDeviceException(T): Exception {
     }
 }
 
-void assertSuccess(T)(T err) {
+void assertSuccess(T)(T err, string file = __FILE__, int line = __LINE__) {
     if (err != 0)
-        throw new iMobileDeviceException!T(err);
+        throw new iMobileDeviceException!T(err, file, line);
 }
 
 enum iDeviceEventType
@@ -254,7 +254,7 @@ public class AFCClient {
     afc_client_t handle;
 
     public this(iDevice device, LockdowndServiceDescriptor service) {
-        afc_client_new(device.handle, service, &handle).assertSuccess();
+        afc_client_new(device.handle, service, &handle).assertSuccess(__FILE__, __LINE__);
     }
 
     public this(HouseArrestClient houseArrestClient) {

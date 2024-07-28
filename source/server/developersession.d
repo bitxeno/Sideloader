@@ -12,6 +12,7 @@ import std.traits;
 import std.typecons;
 import std.uni;
 import std.uuid;
+import std.regex;
 
 import slf4d;
 
@@ -84,7 +85,7 @@ class DeveloperSession {
 
     static DeveloperLoginResponse login(Device device, ADI adi, string appleId, string password, TFAHandlerDelegate tfaHandler) {
         auto log = getLogger();
-        log.infoF!"Creating DeveloperSession for %s..."(appleId);
+        log.infoF!"Creating DeveloperSession for %s..."(maskEmail(appleId));
         return AppleAccount.login(XcodeApplicationInformation, device, adi, appleId, password, tfaHandler).match!(
             (AppleAccount appleAccount) {
                 log.info("DeveloperSession created successfully.");
@@ -99,7 +100,7 @@ class DeveloperSession {
 
     static DeveloperLoginResponse login(Device device, ADI adi, string appleId, string password, NextLoginStepHandler nextStepHandler) {
         auto log = getLogger();
-        log.infoF!"Creating DeveloperSession for %s..."(appleId);
+        log.infoF!"Creating DeveloperSession for %s..."(maskEmail(appleId));
         return AppleAccount.login(XcodeApplicationInformation, device, adi, appleId, password, nextStepHandler).match!(
             (AppleAccount appleAccount) {
                 log.info("DeveloperSession created successfully.");
@@ -110,6 +111,11 @@ class DeveloperSession {
                 return DeveloperLoginResponse(err);
             }
         );
+    }
+
+    static string maskEmail(string email) {
+        auto re = regex(r"(\w{1,3})([\w.-]*)(@[\w.-]+\.\w+)");
+        return email.replaceAll!(c => c[1] ~ replicate("*", c[2].length) ~ c[3])(re);
     }
 
     DeveloperPortalResponse!None viewDeveloper() {
