@@ -188,7 +188,7 @@ void sideloadFull(
     // 75% of the last step is sending the files.
     auto transferStep = 3 / (STEP_COUNT * files.length * 4);
 
-    foreach (f; files) {
+    foreach (i, f; files) {
         auto remotePath = remoteAppFolder.buildPath(f.asRelativePath(app.bundleDir).array()).toForwardSlashes();
         if (f.isDir()) {
             afcClient.makeDirectory(remotePath);
@@ -203,9 +203,8 @@ void sideloadFull(
             }
         }
         progress += transferStep;
-        progressCallback(progress, "Installing the application on the device (Transfer)");
+        progressCallback(progress, format!"Installing the application on the device (Transfer %d/%d)"((i+1), files.length));
     }
-    progressCallback(progress, "Installing the application on the device (Transfer Complete!)");
     // clean temp signed bundle files
     file.rmdirRecurse(app.bundleDir);
 
