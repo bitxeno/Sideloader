@@ -193,13 +193,28 @@ void sideloadFull(
         if (f.isDir()) {
             afcClient.makeDirectory(remotePath);
         } else {
-            auto remoteFile = afcClient.open(remotePath, AFCFileMode.AFC_FOPEN_WRONLY);
-            scope(exit) afcClient.close(remoteFile);
-
             ubyte[] fileData = cast(ubyte[]) file.read(f);
-            uint bytesWrote = 0;
-            while (bytesWrote < fileData.length) {
-                bytesWrote += afcClient.write(remoteFile, fileData);
+            try {
+                afcClient.writePath(remotePath, fileData);
+            }
+            catch (Exception ex)
+            {
+                log.warnF!"afc write file (%s) error, will try again: %s"(baseName(remotePath), ex.msg);
+                try {
+                    if (osVersion >= 17) {
+                        auto heartbeatService = lockdownClient.startService("com.apple.mobile.heartbeat");
+                        scope heartbeatClient = new HeartbeatClient(device, heartbeatService);
+                        heartbeatClient.receive();
+                        heartbeatClient.sendPong();
+                        log.debug_("Heartbeat success for tvOS 17!");
+                    }
+                    afcClient.writePath(remotePath, fileData);
+                }
+                catch (Exception ex)
+                {
+                    log.errorF!"afc write file (%s) error: %s"(baseName(remotePath), ex.msg);
+                    throw ex;
+                }
             }
         }
         progress += transferStep;

@@ -301,6 +301,16 @@ public class AFCClient {
         return ret;
     }
 
+    void writePath(string path, ubyte[] fileData) {
+        auto remoteFile = open(path, AFCFileMode.AFC_FOPEN_WRONLY);
+        scope(exit) close(remoteFile);
+
+        uint bytesWrote = 0;
+        while (bytesWrote < fileData.length) {
+            bytesWrote += write(remoteFile, fileData);
+        }
+    }
+
     void removePath(string path) {
         afc_remove_path(handle, path.toStringz()).assertSuccess();
     }
