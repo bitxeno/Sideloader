@@ -508,6 +508,7 @@ package class AppleAccount {
         rq.addHeaders(appInfo.headers);
         Response httpResponse;
         if (request !is null) {
+            getLogger().trace(request.toXml());
             httpResponse = rq.post(url, request.toXml(), "text/x-xml-plist");
         } else {
             httpResponse = rq.get(url);

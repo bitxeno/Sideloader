@@ -4,6 +4,8 @@ import std.algorithm.iteration;
 import std.array;
 import file = std.file;
 import std.path;
+import std.algorithm;
+import std.regex;
 
 import plist;
 
@@ -31,7 +33,7 @@ class Bundle {
 
         auto frameworksDir = bundleDir.buildPath("Frameworks");
         if (file.exists(frameworksDir)) {
-            _frameworks = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isDir).map!((f) => new Bundle(f.name)).array;
+            _frameworks = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isDir && f.name.endsWith(".framework")).map!((f) => new Bundle(f.name)).array;
             _libraries = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isFile).map!((f) => f.name[bundleDir.length + 1..$]).array;
         } else {
             _frameworks = [];
@@ -39,9 +41,9 @@ class Bundle {
     }
 
     void bundleIdentifier(string id) => appInfo["CFBundleIdentifier"] = id.pl;
-    string bundleIdentifier() => appInfo["CFBundleIdentifier"].str().native();
+    string bundleIdentifier() => appInfo["CFBundleIdentifier"].str().native().replaceAll(regex(r"[^a-zA-Z0-9.-]"), "");
 
-    string bundleName() => appInfo["CFBundleName"].str().native();
+    string bundleName() => appInfo["CFBundleName"].str().native().replaceAll(regex(r"[^a-zA-Z0-9.-]"), "");
 
     string[] libraries() => _libraries;
     Bundle[] frameworks() => _frameworks;
