@@ -184,6 +184,7 @@ void copyDirRecursively(string sourceDir, string targetDir) {
     }
 }
 
+
 Tuple!(PlistDict, PlistDict) sign(
     Bundle bundle,
     CertificateIdentity identity,
@@ -197,9 +198,13 @@ Tuple!(PlistDict, PlistDict) sign(
     auto log = getLogger();
 
     auto bundleFolder = bundle.bundleDir;
-    auto fairPlayFolder = bundleFolder.buildPath("SC_Info");
-    if (file.exists(fairPlayFolder)) {
-        file.rmdirRecurse(fairPlayFolder);
+    // remove all SC_Info folders
+    foreach (entry; file.dirEntries(bundleFolder, file.SpanMode.depth))
+    {
+        if (entry.isDir && baseName(entry) == "SC_Info")
+        {
+            file.rmdirRecurse(entry);
+        }
     }
 
     auto bundleId =  bundle.bundleIdentifier();

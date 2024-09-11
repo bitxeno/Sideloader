@@ -199,22 +199,8 @@ void sideloadFull(
             }
             catch (Exception ex)
             {
-                log.warnF!"afc write file (%s) error, will try again: %s"(baseName(remotePath), ex.msg);
-                try {
-                    if (osVersion >= 17) {
-                        auto heartbeatService = lockdownClient.startService("com.apple.mobile.heartbeat");
-                        scope heartbeatClient = new HeartbeatClient(device, heartbeatService);
-                        heartbeatClient.receive();
-                        heartbeatClient.sendPong();
-                        log.debug_("Heartbeat success for tvOS 17!");
-                    }
-                    afcClient.writePath(remotePath, fileData);
-                }
-                catch (Exception ex)
-                {
-                    log.errorF!"afc write file (%s) error: %s"(baseName(remotePath), ex.msg);
-                    throw ex;
-                }
+                log.errorF!"afc write file (%s) error: %s"(baseName(remotePath), ex.msg);
+                throw ex;
             }
         }
         progress += transferStep;
