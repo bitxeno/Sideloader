@@ -56,7 +56,7 @@ auto openApp(string path) {
     if (!file.exists(path))
         return wrongArgument("The specified app file does not exist.");
 
-    if (!path.endsWith(".ipa"))
+    if (!path.endsWith(".ipa") && !path.endsWith(".tipa"))
         return wrongArgument("The app is not an ipa file.");
 
     if (!file.isFile(path))
