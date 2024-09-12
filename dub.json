@@ -11,7 +11,10 @@
     "buildRequirements": ["allowWarnings", "requireBoundsCheck"],
 
     "dependencies": {
-        "botan": "~>1.13",
+        "botan": {
+            "repository": "git+https://github.com/etcimon/botan.git",
+            "version": "3387ed99833dcb717bd9f6ab0fad9f0de766f491"
+        },
         "dynamic-loader": {
             "repository": "git+https://github.com/Dadoum/dynamicloader.git",
             "version": "65a8b8b8a6d44d47e63bddc985268592ecf47764"
