@@ -8,6 +8,7 @@ import std.datetime;
 import file = std.file;
 import std.format;
 import std.path;
+import std.zip;
 
 import slf4d;
 
@@ -163,48 +164,40 @@ void sideloadFull(
     }
     afcClient.makeDirectory(stagingDir).assertSuccess();
 
-    auto options = dict(
-        "PackageType", "Developer"
-    );
-
-    auto remoteAppFolder = stagingDir.buildPath(baseName(app.bundleDir)).toForwardSlashes();
-    if (afcClient.getFileInfo(remoteAppFolder, props) != AFCError.AFC_E_SUCCESS) {
-        // The directory does not exist, so let's create it!
-        afcClient.makeDirectory(remoteAppFolder).assertSuccess();
+    auto ipaName = baseName(app.bundleDir).stripExtension ~ ".ipa";
+    auto tempIpaPath = createIpaFromDirectory(app.bundleDir);
+    log.infoF!"tempIpaPath: %s"(tempIpaPath);
+    auto remoteIpaFile = stagingDir.buildPath(ipaName);
+        log.infoF!"remoteIpaFile: %s"(remoteIpaFile);
+    ubyte[] fileData = cast(ubyte[]) file.read(tempIpaPath);
+    try {
+        afcClient.writePath(remoteIpaFile, fileData, (totalBytes, bytesWrote) {
+            auto transferStep = 3 / (STEP_COUNT * 100 * 4);
+            progress += transferStep;
+            auto percent = ulong((bytesWrote / totalBytes) * 100);
+            progressCallback(progress, format!"Installing the application on the device (Transfer %d/%d)"(percent, 100));
+        });
     }
-
-    auto files = file.dirEntries(app.bundleDir, file.SpanMode.breadth).array();
-    // 75% of the last step is sending the files.
-    auto transferStep = 3 / (STEP_COUNT * files.length * 4);
-
-    foreach (i, f; files) {
-        auto remotePath = remoteAppFolder.buildPath(f.asRelativePath(app.bundleDir).array()).toForwardSlashes();
-        if (f.isDir()) {
-            afcClient.makeDirectory(remotePath);
-        } else {
-            ubyte[] fileData = cast(ubyte[]) file.read(f);
-            try {
-                afcClient.writePath(remotePath, fileData);
-            }
-            catch (Exception ex)
-            {
-                log.errorF!"afc write file (%s) error: %s"(baseName(remotePath), ex.msg);
-                throw ex;
-            }
-        }
-        progress += transferStep;
-        progressCallback(progress, format!"Installing the application on the device (Transfer %d/%d)"((i+1), files.length));
+    catch (Exception ex)
+    {
+        log.errorF!"afc write file (%s) error: %s"(baseName(remoteIpaFile), ex.msg);
+        throw ex;
     }
     // clean temp signed bundle files
     file.rmdirRecurse(app.bundleDir);
+    file.remove(tempIpaPath);
 
     // This is negligible in terms of time
     foreach (profile; provisioningProfiles.values()) {
         misagentClient.install(new PlistData(profile.encodedProfile));
     }
 
+    
     Tid parentTid = thisTid();
-    installationProxyClient.install(remoteAppFolder, options, (command, statusPlist) {
+    auto options = dict(
+        "PackageType", "Developer"
+    );
+    installationProxyClient.install(remoteIpaFile, options, (command, statusPlist) {
         try {
             auto status = statusPlist.dict();
             if (auto statusEntry = "Status" in status) {
@@ -238,6 +231,41 @@ void sideloadFull(
 
     progressCallback(1.0, "Done!");
     log.info("Installation Succeeded!");
+}
+
+string createIpaFromDirectory(string bundleDir) {
+    auto log = getLogger();
+    // 创建一个新的ZipArchive对象
+    auto tempPath = file.tempDir().buildPath("ipa");
+    if (file.exists(tempPath)) {
+        file.rmdirRecurse(tempPath);
+        file.mkdir(tempPath);
+    } else {
+        file.mkdirRecurse(tempPath);
+    }
+    auto ipaName = baseName(bundleDir).stripExtension ~ ".ipa";
+    auto outputPath = tempPath.buildPath(ipaName);
+    log.infoF!"outputPath: %s"(outputPath);
+
+    auto zip = new ZipArchive();
+    auto files = file.dirEntries(bundleDir, file.SpanMode.breadth).array();
+    foreach (i, f; files) {
+        // auto remotePath = remoteAppFolder.buildPath(f.asRelativePath(bundleDir).array()).toForwardSlashes();
+        string archivePath = "Payload/" ~ f.asRelativePath(dirName(bundleDir)).array().toForwardSlashes();
+        log.infoF!"archivePath: %s"(archivePath);
+        if (f.isFile) {
+            ubyte[] fileData = cast(ubyte[]) file.read(f);
+            auto archive = new ArchiveMember();
+            archive.name = archivePath;
+            archive.expandedData = fileData;
+            archive.compressionMethod = CompressionMethod.deflate;
+            zip.addMember(archive);
+        }
+    }
+
+    auto compressed = zip.build();
+    file.write(outputPath, compressed);
+    return outputPath;
 }
 
 class NoAppIdRemainingException: Exception {

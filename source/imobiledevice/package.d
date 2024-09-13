@@ -301,13 +301,15 @@ public class AFCClient {
         return ret;
     }
 
-    void writePath(string path, ubyte[] fileData) {
+    alias BytesWroteCallback = void delegate(ulong totalBytes, uint bytesWrote);
+    void writePath(string path, ubyte[] fileData, BytesWroteCallback bytesWroteCallback) {
         auto remoteFile = open(path, AFCFileMode.AFC_FOPEN_WRONLY);
         scope(exit) close(remoteFile);
 
         uint bytesWrote = 0;
         while (bytesWrote < fileData.length) {
             bytesWrote += write(remoteFile, fileData);
+            bytesWroteCallback(fileData.length, bytesWrote);
         }
     }
 
