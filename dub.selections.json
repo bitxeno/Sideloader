@@ -26,7 +26,7 @@
 		"inilike": "1.2.2",
 		"intel-intrinsics": "1.11.20",
 		"isfreedesktop": "0.1.1",
-		"keyring": {"path":"../../keyring/"},
+		"keyring": {"path":"../../keyring"},
 		"memutils": "1.0.10",
 		"mir-core": "1.6.0",
 		"plist": "~master",

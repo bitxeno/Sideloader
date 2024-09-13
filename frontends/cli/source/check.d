@@ -84,7 +84,14 @@ struct CheckAfc
         device.udid();
 
         scope lockdownClient = new LockdowndClient(device, "sideloader");
-        lockdownClient.startService(AFC_SERVICE_NAME);
+        scope afcService = lockdownClient.startService(AFC_SERVICE_NAME);
+        scope afcClient = new AFCClient(device, afcService);
+        string[] props;
+        auto ret = afcClient.getFileInfo("PublicStaging", props);
+        if (ret != AFCError.AFC_E_SUCCESS && ret != AFCError.AFC_E_OBJECT_NOT_FOUND) {
+            log.infoF!"Check AFC error: %s"(ret);
+            return 1;
+        }
         log.info("SUCCESS!");
 
         return 0;
