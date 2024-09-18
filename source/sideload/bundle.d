@@ -22,8 +22,10 @@ class Bundle {
         this.bundleDir = bundleDir;
         string infoPlistPath = bundleDir.buildPath("Info.plist");
         assertBundle(file.exists(infoPlistPath), "No Info.plist here: " ~ infoPlistPath);
-        appInfo = Plist.fromMemory(cast(ubyte[]) file.read(infoPlistPath)).dict();
 
+        fixBundleIdentifierAndName(infoPlistPath);
+
+        appInfo = Plist.fromMemory(cast(ubyte[]) file.read(infoPlistPath)).dict();
         auto plugInsDir = bundleDir.buildPath("PlugIns");
         if (file.exists(plugInsDir)) {
             _appExtensions = file.dirEntries(plugInsDir, file.SpanMode.shallow).filter!((f) => f.isDir).map!((f) => new Bundle(f.name)).array;
@@ -40,10 +42,30 @@ class Bundle {
         }
     }
 
-    void bundleIdentifier(string id) => appInfo["CFBundleIdentifier"] = id.pl;
-    string bundleIdentifier() => appInfo["CFBundleIdentifier"].str().native().replaceAll(regex(r"[^a-zA-Z0-9.-]"), "");
+    private static void fixBundleIdentifierAndName(string infoPlistPath) {
+        auto info = Plist.fromMemory(cast(ubyte[]) file.read(infoPlistPath)).dict();
+        auto rValidChar = regex(r"^[a-zA-Z0-9.-]$");
+        auto rInvalidChar = regex(r"[^a-zA-Z0-9.-]");
+    
+        auto needWrite = false;
+        if (!matchFirst(info["CFBundleIdentifier"].str().native(), rValidChar)) {
+            info["CFBundleIdentifier"].str().opAssign(info["CFBundleIdentifier"].str().native().replaceAll(rInvalidChar, ""));
+            needWrite = true;
+        }
+        if (!matchFirst(info["CFBundleName"].str().native(), rValidChar)) {
+            info["CFBundleName"].str().opAssign(info["CFBundleName"].str().native().replaceAll(rInvalidChar, ""));
+            needWrite = true;
+        }
+        if (needWrite) {
+            file.write(infoPlistPath, cast(ubyte[])info.toXml());
+        }
+    }
+    
 
-    string bundleName() => appInfo["CFBundleName"].str().native().replaceAll(regex(r"[^a-zA-Z0-9.-]"), "");
+    void bundleIdentifier(string id) => appInfo["CFBundleIdentifier"] = id.pl;
+    string bundleIdentifier() => appInfo["CFBundleIdentifier"].str().native();
+
+    string bundleName() => appInfo["CFBundleName"].str().native();
 
     string[] libraries() => _libraries;
     Bundle[] frameworks() => _frameworks;
