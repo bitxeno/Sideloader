@@ -260,6 +260,7 @@ int entryPoint(Commands commands)
                 (CertificateCommand cmd) => cmd(),
                 (InstallCommand cmd) => cmd(),
                 (SignCommand cmd) => cmd(),
+                (TrollsignCommand cmd) => cmd(),
                 (TeamCommand cmd) => cmd(),
                 (DeviceCommand cmd) => cmd(),
                 (GroupCommand cmd) => cmd(),
@@ -291,7 +292,7 @@ struct Commands
     uint threadCount = uint.max;
 
     @SubCommands
-    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TeamCommand, DeviceCommand, GroupCommand, CheckCommand, ToolCommand, VersionCommand) cmd;
+    SumType!(AppIdCommand, CertificateCommand, InstallCommand, SignCommand, TrollsignCommand, TeamCommand, ToolCommand, VersionCommand, GroupCommand, CheckCommand) cmd;
 }
 
 mixin CLI!Commands.main!entryPoint;
