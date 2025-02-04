@@ -29,7 +29,7 @@
 		"keyring": {"path":"../../keyring"},
 		"memutils": "1.0.10",
 		"mir-core": "1.6.0",
-		"plist": "~master",
+		"plist": {"version":"a425458e2c3d8195c6a9ad68e643f2d823850693","repository":"git+https://github.com/Dadoum/plist.git"},
 		"plist-d": {"version":"4daa9ab7d97fda575bdc1c2aaf80c7639d78af62","repository":"git+https://github.com/bitxeno/libplist-d.git"},
 		"progress": "5.0.2",
 		"provision": {"version":"ee7d00ca6b5868661a675bfb2938720a78fc42e3","repository":"git+https://github.com/bitxeno/Provision.git"},
