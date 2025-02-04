@@ -52,13 +52,23 @@ class Bundle {
             info["CFBundleIdentifier"].str().opAssign(info["CFBundleIdentifier"].str().native().replaceAll(rInvalidChar, ""));
             needWrite = true;
         }
-        if ("CFBundleName" in info && !matchFirst(info["CFBundleName"].str().native(), rValidChar)) {
+        if("CFBundleName" !in info) {
+            auto bundleId = info["CFBundleIdentifier"].str().native().replaceAll(rInvalidChar, "");
+            info["CFBundleName"] = getBundleName(bundleId).pl;
+            needWrite = true;
+        }
+        if (!matchFirst(info["CFBundleName"].str().native(), rValidChar)) {
             info["CFBundleName"].str().opAssign(info["CFBundleName"].str().native().replaceAll(rInvalidChar, ""));
             needWrite = true;
         }
         if (needWrite) {
             file.write(infoPlistPath, cast(ubyte[])info.toXml());
         }
+    }
+
+    private static string getBundleName(string bundleId) {
+        auto parts = bundleId.split(".");
+        return parts.length > 0 ? parts[$ - 1] : bundleId;
     }
     
 
