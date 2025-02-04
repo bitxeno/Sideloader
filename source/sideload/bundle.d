@@ -52,7 +52,7 @@ class Bundle {
             info["CFBundleIdentifier"].str().opAssign(info["CFBundleIdentifier"].str().native().replaceAll(rInvalidChar, ""));
             needWrite = true;
         }
-        if (!matchFirst(info["CFBundleName"].str().native(), rValidChar)) {
+        if ("CFBundleName" in info && !matchFirst(info["CFBundleName"].str().native(), rValidChar)) {
             info["CFBundleName"].str().opAssign(info["CFBundleName"].str().native().replaceAll(rInvalidChar, ""));
             needWrite = true;
         }
