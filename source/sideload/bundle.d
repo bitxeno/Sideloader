@@ -28,14 +28,14 @@ class Bundle {
         appInfo = Plist.fromMemory(cast(ubyte[]) file.read(infoPlistPath)).dict();
         auto plugInsDir = bundleDir.buildPath("PlugIns");
         if (file.exists(plugInsDir)) {
-            _appExtensions = file.dirEntries(plugInsDir, file.SpanMode.shallow).filter!((f) => f.isDir).map!((f) => new Bundle(f.name)).array;
+            _appExtensions = file.dirEntries(plugInsDir, file.SpanMode.shallow).filter!((f) => f.isDir && file.exists(f.buildPath("Info.plist"))).map!((f) => new Bundle(f.name)).array;
         } else {
             _appExtensions = [];
         }
 
         auto frameworksDir = bundleDir.buildPath("Frameworks");
         if (file.exists(frameworksDir)) {
-            _frameworks = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isDir && f.name.endsWith(".framework")).map!((f) => new Bundle(f.name)).array;
+            _frameworks = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isDir && file.exists(f.buildPath("Info.plist"))).map!((f) => new Bundle(f.name)).array;
             _libraries = file.dirEntries(frameworksDir, file.SpanMode.shallow).filter!((f) => f.isFile).map!((f) => f.name[bundleDir.length + 1..$]).array;
         } else {
             _frameworks = [];
