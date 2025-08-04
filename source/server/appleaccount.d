@@ -165,7 +165,7 @@ package class AppleAccount {
             if (urlBagKey == "trustedDeviceSecondaryAuth") {
                 // need device 2FA
                 submitCode = (string code) {
-                    request.headers["security-code"] = code;
+                    request.addHeaders(["security-code": code]);
                     auto codeValidationPlist = Plist.fromXml(request.get(urls["validateCode"]).responseBody().data!string()).dict();
                     log.traceF!"Trusted device 2FA response: %s"(codeValidationPlist.toXml());
                     auto resultCode = codeValidationPlist["ec"].uinteger().native();
