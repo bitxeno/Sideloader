@@ -264,7 +264,6 @@ int entryPoint(Commands commands)
                 (SignCommand cmd) => cmd(),
                 (TrollsignCommand cmd) => cmd(),
                 (TeamCommand cmd) => cmd(),
-                (DeviceCommand cmd) => cmd(),
                 (GroupCommand cmd) => cmd(),
                 (CheckCommand cmd) => cmd(),
                 (ToolCommand cmd) => cmd(),
