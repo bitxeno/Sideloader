@@ -294,7 +294,7 @@ struct Commands
     uint threadCount = uint.max;
 
     @SubCommands
-    SumType!(AppIdCommand, CertificateCommand, DeviceCommand, InstallCommand, SignCommand, TrollsignCommand, TeamCommand, ToolCommand, VersionCommand) cmd;
+    SumType!(AppIdCommand, CertificateCommand, DeviceCommand, InstallCommand, SignCommand, TrollsignCommand, TeamCommand, ToolCommand, VersionCommand, GroupCommand, CheckCommand) cmd;
 }
 
 mixin CLI!Commands.main!entryPoint;
